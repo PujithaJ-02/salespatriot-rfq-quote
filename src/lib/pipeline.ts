@@ -82,6 +82,17 @@ export async function processRfq(
   // 4. Build the quote
   const built = await buildQuote(quoteInputs, marginPct);
 
+  // Guard: if nothing got matched/priced, don't create a junk $0 quote
+  if (built.lines.length === 0) {
+    await db
+      .update(solicitations)
+      .set({ status: "no_match" })
+      .where(eq(solicitations.id, sol.id));
+    throw new Error(
+      "No line items could be matched to the catalog. No quote was created."
+    );
+  }
+
   // 5. Save the quote header
   const [quote] = await db
     .insert(quotes)
