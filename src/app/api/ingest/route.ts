@@ -1,6 +1,6 @@
 // src/app/api/ingest/route.ts
 import { NextResponse } from "next/server";
-import { processRfq } from "@/lib/pipeline";
+import { processRfq, getQuoteDetail } from "@/lib/pipeline";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,9 @@ export async function POST(req: Request) {
     }
 
     const result = await processRfq(text, "paste", marginPct);
-    return NextResponse.json(result);
+    const detail = await getQuoteDetail(result.quoteId);
+
+    return NextResponse.json({ ...result, detail });
   } catch (err) {
     console.error("Ingest failed:", err);
     return NextResponse.json(

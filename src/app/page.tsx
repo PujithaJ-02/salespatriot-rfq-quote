@@ -3,15 +3,36 @@
 
 import { useState } from "react";
 
-type QuoteResult = {
-  solicitationId: number;
+type QuoteLine = {
+  id: number;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  partNo: string;
+  partName: string;
+  supplierName: string;
+};
+
+type QuoteDetail = {
   quoteId: number;
+  title: string;
+  agency: string | null;
+  marginPct: number;
   total: number;
+  lines: QuoteLine[];
+};
+
+type QuoteResult = {
+  quoteId: number;
   lineCount: number;
   matchedCount: number;
   reviewCount: number;
   unmatchedCount: number;
+  detail: QuoteDetail | null;
 };
+
+const money = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -39,62 +60,139 @@ export default function Home() {
     }
   }
 
+  const detail = result?.detail;
+
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="text-3xl font-bold text-gray-900">RFQ to Quote</h1>
-        <p className="mt-2 text-gray-600">
-          Paste a messy RFQ email below. It gets parsed, matched to the parts
-          catalog, and priced automatically.
-        </p>
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      {/* Header */}
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-4">
+          <h1 className="text-lg font-semibold tracking-tight">
+            RFQ &rarr; Quote
+          </h1>
+          <p className="text-sm text-slate-500">
+            Parse a solicitation, match it to your catalog, and price it.
+          </p>
+        </div>
+      </header>
 
-        <textarea
-          className="mt-6 w-full h-64 rounded-lg border border-gray-300 p-4 font-mono text-sm text-gray-900 focus:border-gray-900 focus:outline-none"
-          placeholder="Paste RFQ text here..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Left: input */}
+          <section>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              RFQ text
+            </label>
+            <textarea
+              className="h-96 w-full rounded-xl border border-slate-300 bg-white p-4 font-mono text-sm leading-relaxed shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+              placeholder="Paste a messy RFQ email here..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !text.trim()}
+              className="mt-4 w-full rounded-xl bg-slate-900 px-6 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {loading ? "Processing..." : "Generate Quote"}
+            </button>
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !text.trim()}
-          className="mt-4 rounded-lg bg-gray-900 px-6 py-3 font-medium text-white disabled:opacity-40"
-        >
-          {loading ? "Processing..." : "Generate Quote"}
-        </button>
+            {error && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+          </section>
 
-        {error && (
-          <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        )}
+          {/* Right: output */}
+          <section>
+            {!result && (
+              <div className="flex h-96 items-center justify-center rounded-xl border border-dashed border-slate-300 text-sm text-slate-400">
+                Your generated quote will appear here.
+              </div>
+            )}
 
-        {result && (
-          <div className="mt-6 rounded-lg border border-green-300 bg-green-50 p-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Quote #{result.quoteId} generated
-            </h2>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              ${result.total.toLocaleString()}
-            </p>
-            <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
-              <Stat label="Line items" value={result.lineCount} />
-              <Stat label="Matched" value={result.matchedCount} />
-              <Stat label="Review" value={result.reviewCount} />
-              <Stat label="Unmatched" value={result.unmatchedCount} />
-            </div>
-          </div>
-        )}
-      </div>
-    </main>
-  );
-}
+            {result && detail && (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                {/* Quote header */}
+                <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="font-semibold">{detail.title}</h2>
+                      <p className="text-sm text-slate-500">
+                        {detail.agency ?? "Unknown agency"} &middot; Quote #
+                        {detail.quoteId}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
+                      {result.matchedCount} matched
+                    </span>
+                  </div>
+                </div>
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg bg-white p-3 text-center">
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-gray-500">{label}</div>
+                {/* Line items table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                        <th className="px-6 py-3 font-medium">Part</th>
+                        <th className="px-3 py-3 font-medium">Supplier</th>
+                        <th className="px-3 py-3 text-right font-medium">Qty</th>
+                        <th className="px-3 py-3 text-right font-medium">Unit</th>
+                        <th className="px-6 py-3 text-right font-medium">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.lines.map((l) => (
+                        <tr
+                          key={l.id}
+                          className="border-b border-slate-100 last:border-0"
+                        >
+                          <td className="px-6 py-3">
+                            <div className="font-medium text-slate-900">
+                              {l.partNo}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {l.partName}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-slate-600">
+                            {l.supplierName}
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums">
+                            {l.qty.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums">
+                            {money(l.unitPrice)}
+                          </td>
+                          <td className="px-6 py-3 text-right font-medium tabular-nums">
+                            {money(l.lineTotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Total footer */}
+                <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+                  <span className="text-sm text-slate-500">
+                    Incl. {detail.marginPct}% margin
+                  </span>
+                  <div className="text-right">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">
+                      Quote total
+                    </div>
+                    <div className="text-2xl font-bold tabular-nums text-slate-900">
+                      {money(detail.total)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

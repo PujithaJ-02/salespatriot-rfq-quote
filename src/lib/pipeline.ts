@@ -5,6 +5,8 @@ import {
   lineItems,
   quotes,
   quoteLines,
+  partsCatalog,
+  suppliers,
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { parseRfq } from "./parse";
@@ -120,5 +122,49 @@ export async function processRfq(
     matchedCount,
     reviewCount,
     unmatchedCount,
+  };
+}
+
+// Fetch a full quote with all its lines joined to part + supplier names
+export async function getQuoteDetail(quoteId: number) {
+  const [quote] = await db
+    .select()
+    .from(quotes)
+    .where(eq(quotes.id, quoteId));
+
+  if (!quote) return null;
+
+  const [sol] = await db
+    .select()
+    .from(solicitations)
+    .where(eq(solicitations.id, quote.solicitationId));
+
+  // Join quote lines to part names and supplier names
+  const lines = await db
+    .select({
+      id: quoteLines.id,
+      qty: quoteLines.qty,
+      unitPrice: quoteLines.unitPrice,
+      lineTotal: quoteLines.lineTotal,
+      partNo: partsCatalog.partNo,
+      partName: partsCatalog.name,
+      supplierName: suppliers.name,
+    })
+    .from(quoteLines)
+    .innerJoin(partsCatalog, eq(quoteLines.partId, partsCatalog.id))
+    .innerJoin(suppliers, eq(quoteLines.supplierId, suppliers.id))
+    .where(eq(quoteLines.quoteId, quoteId));
+
+  return {
+    quoteId: quote.id,
+    title: sol?.title ?? "Untitled",
+    agency: sol?.agency ?? null,
+    marginPct: Number(quote.marginPct),
+    total: Number(quote.total),
+    lines: lines.map((l) => ({
+      ...l,
+      unitPrice: Number(l.unitPrice),
+      lineTotal: Number(l.lineTotal),
+    })),
   };
 }
