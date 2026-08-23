@@ -8,7 +8,7 @@ import {
   partsCatalog,
   suppliers,
 } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { parseRfq } from "./parse";
 import { matchLineItem } from "./match";
 import { buildQuote, type QuoteLineInput } from "./quote";
@@ -167,4 +167,25 @@ export async function getQuoteDetail(quoteId: number) {
       lineTotal: Number(l.lineTotal),
     })),
   };
+}
+
+// List all quotes with their solicitation info, newest first
+export async function listQuotes() {
+  const rows = await db
+    .select({
+      quoteId: quotes.id,
+      total: quotes.total,
+      status: quotes.status,
+      createdAt: quotes.createdAt,
+      title: solicitations.title,
+      agency: solicitations.agency,
+    })
+    .from(quotes)
+    .innerJoin(solicitations, eq(quotes.solicitationId, solicitations.id))
+    .orderBy(desc(quotes.id));
+
+  return rows.map((r) => ({
+    ...r,
+    total: Number(r.total),
+  }));
 }
