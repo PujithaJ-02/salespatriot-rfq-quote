@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type QuoteLine = {
   id: number;
@@ -64,21 +65,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
-      {/* Header */}
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-4">
-          <h1 className="text-lg font-semibold tracking-tight">
-            RFQ &rarr; Quote
-          </h1>
-          <p className="text-sm text-slate-500">
-            Parse a solicitation, match it to your catalog, and price it.
-          </p>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">RFQ to Quote</h1>
+            <p className="text-sm text-slate-500">
+              Parse a solicitation, match it to your catalog, and price it.
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            Dashboard
+          </Link>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left: input */}
           <section>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               RFQ text
@@ -104,7 +109,6 @@ export default function Home() {
             )}
           </section>
 
-          {/* Right: output */}
           <section>
             {!result && (
               <div className="flex h-96 items-center justify-center rounded-xl border border-dashed border-slate-300 text-sm text-slate-400">
@@ -114,14 +118,12 @@ export default function Home() {
 
             {result && detail && (
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                {/* Quote header */}
                 <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <h2 className="font-semibold">{detail.title}</h2>
                       <p className="text-sm text-slate-500">
-                        {detail.agency ?? "Unknown agency"} &middot; Quote #
-                        {detail.quoteId}
+                        {detail.agency ?? "Unknown agency"} &middot; Quote #{detail.quoteId}
                       </p>
                     </div>
                     <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -130,7 +132,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Line items table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -144,48 +145,26 @@ export default function Home() {
                     </thead>
                     <tbody>
                       {detail.lines.map((l) => (
-                        <tr
-                          key={l.id}
-                          className="border-b border-slate-100 last:border-0"
-                        >
+                        <tr key={l.id} className="border-b border-slate-100 last:border-0">
                           <td className="px-6 py-3">
-                            <div className="font-medium text-slate-900">
-                              {l.partNo}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {l.partName}
-                            </div>
+                            <div className="font-medium text-slate-900">{l.partNo}</div>
+                            <div className="text-xs text-slate-500">{l.partName}</div>
                           </td>
-                          <td className="px-3 py-3 text-slate-600">
-                            {l.supplierName}
-                          </td>
-                          <td className="px-3 py-3 text-right tabular-nums">
-                            {l.qty.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-3 text-right tabular-nums">
-                            {money(l.unitPrice)}
-                          </td>
-                          <td className="px-6 py-3 text-right font-medium tabular-nums">
-                            {money(l.lineTotal)}
-                          </td>
+                          <td className="px-3 py-3 text-slate-600">{l.supplierName}</td>
+                          <td className="px-3 py-3 text-right tabular-nums">{l.qty.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right tabular-nums">{money(l.unitPrice)}</td>
+                          <td className="px-6 py-3 text-right font-medium tabular-nums">{money(l.lineTotal)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Total footer */}
                 <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
-                  <span className="text-sm text-slate-500">
-                    Incl. {detail.marginPct}% margin
-                  </span>
+                  <span className="text-sm text-slate-500">Incl. {detail.marginPct}% margin</span>
                   <div className="text-right">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
-                      Quote total
-                    </div>
-                    <div className="text-2xl font-bold tabular-nums text-slate-900">
-                      {money(detail.total)}
-                    </div>
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Quote total</div>
+                    <div className="text-2xl font-bold tabular-nums text-slate-900">{money(detail.total)}</div>
                   </div>
                 </div>
               </div>
