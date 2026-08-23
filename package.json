@@ -16,6 +16,7 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "string-similarity-js": "^2.1.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
